@@ -14,9 +14,7 @@ load_dotenv()
 
 # Init text to speech engine
 tts_engine = pyttsx3.init()
-print(os.environ)
-wake_word = configs.wake_word.lower() # os.getenv(os.environ['WAKE_WORD']).lower()
-
+wake_word = configs.wake_word.lower()
 
 genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
 
@@ -40,7 +38,7 @@ def audio_to_text(filename):
     try:
         return recognizer.recognize_google(audio)
     except:
-        print("Skipping unkown error")
+        print_string("Skipping unkown error")
 
 
 def generate_response(chat, prompt):
@@ -57,6 +55,9 @@ def speak_text(text):
     tts_engine.say(text)
     tts_engine.runAndWait()
 
+def print_string(s):
+    if configs.print_output:
+        print(s)
 
 def main():
     chat = model.start_chat(history=[])
@@ -64,10 +65,11 @@ def main():
 
     while True:
         # Wait for wake up word to be said
-        print(f"Say {wake_word} to begin your question")
+        print_string(f"Say {wake_word} to begin your question")
         recognizer = sr.Recognizer()
 
         with sr.Microphone() as source:
+
             if is_convo:
                 play_sound("wakeup.wav")
 
@@ -87,10 +89,10 @@ def main():
 
                     # Record audio
                     filename = "input.wav"
-                    print("Listening...")
                     text = ""
 
                     if is_convo == False:
+                        print_string("Listening...")
                         with sr.Microphone() as source:
                             recognizer = sr.Recognizer()
                             source.pause_threshold = 1
@@ -103,16 +105,17 @@ def main():
 
                             # Transcribe audio to text
                             text = audio_to_text(filename)
+                            
+                            play_sound("sound2.wav")
                     else:
                         text = transcription.lower()
                     
                     if text:
-                        play_sound("sound2.wav")
-                        print(f" I heard: {text}")
+                        print_string(f" I heard: {text}")
 
                         # Generate response from Gemini
                         response = generate_response(chat, text)
-                        print(f"Gemini says: {response}")
+                        print_string(f"Gemini says: {response}")
                         is_convo = True
 
                         # Read response using tts
@@ -121,7 +124,7 @@ def main():
             except Exception as e:
                 # Failed for some reason
                 is_convo = False
-                print("And error occured: {}".format(e))
+                print_string("And error occured: {}".format(e))
 
 
 if __name__ == "__main__":

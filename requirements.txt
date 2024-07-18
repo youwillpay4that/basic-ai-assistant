@@ -1,5 +1,5 @@
 speech_recognition
 pyttsx3
 pydub
-dotenv
-dotenv_vault
+python-dotenv
+python-dotenv-vault
