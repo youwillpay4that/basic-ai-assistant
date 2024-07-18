@@ -18,7 +18,6 @@ Create .env file for settings and your Google API Key. You can view or get one f
 ```
 # inside your .env file
 API_KEY = "YOUR-KEY-HERE"
-WAKE_WORD = "YOUR-WORD-HERE"
 ```
 
 All done! Run Main.py to start your chatbot!
