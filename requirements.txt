@@ -1,13 +1,5 @@
-numpy<2.0.0
-numba
-omegaconf>=2.3.0
-torch>=2.1.0
-tqdm
-vector_quantize_pytorch
-transformers>=4.41.1
-vocos
-IPython
-gradio
-pybase16384
-av
+speech_recognition
+pyttsx3
 pydub
+dotenv
+dotenv_vault
