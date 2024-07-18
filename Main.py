@@ -8,25 +8,23 @@ import pyttsx3
 from pydub import AudioSegment
 from pydub.playback import play
 from dotenv_vault import load_dotenv
-
-global last_prompt_time
+import configs
 
 load_dotenv()
 
 # Init text to speech engine
 tts_engine = pyttsx3.init()
+print(os.environ)
+wake_word = configs.wake_word.lower() # os.getenv(os.environ['WAKE_WORD']).lower()
 
-wake_word = "hey jarvis"
-last_prompt_time = time.time()
-convo_wait_time = 8
 
-genai.configure(api_key=os.getenv("API_KEY"))
+genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
 
 model = genai.GenerativeModel(
-    "gemini-1.5-flash",
+    configs.model_name,
     generation_config = genai.GenerationConfig(
-        max_output_tokens = 100,
-        temperature = 0.9,
+        max_output_tokens = configs.max_output_tokens,
+        temperature = configs.temperature,
     )
 )
 
@@ -46,7 +44,7 @@ def audio_to_text(filename):
 
 
 def generate_response(chat, prompt):
-    response = chat.send_message(prompt)
+    response = chat.send_message("Keep the response SHORT and to the POINT. "+prompt)
 
     t = response.text.replace("*","")
     t = t.replace("👋","")
@@ -84,9 +82,7 @@ def main():
 
                 
                 if can_continue:
-                    if not is_convo:
-                        play_sound("wakeup.wav")
-                    else:
+                    if is_convo:
                         play_sound("sound2.wav")
 
                     # Record audio
@@ -98,6 +94,8 @@ def main():
                         with sr.Microphone() as source:
                             recognizer = sr.Recognizer()
                             source.pause_threshold = 1
+
+                            play_sound("wakeup.wav")
                             audio = recognizer.listen(source, phrase_time_limit = None, timeout = None)
 
                             with open(filename, "wb") as f:
@@ -110,14 +108,13 @@ def main():
                     
                     if text:
                         play_sound("sound2.wav")
-
                         print(f" I heard: {text}")
-                        # Replace with custom commands here
 
-                        # Generate response from GPT-3
+                        # Generate response from Gemini
                         response = generate_response(chat, text)
                         print(f"Gemini says: {response}")
                         is_convo = True
+
                         # Read response using tts
                         speak_text(response)
 
