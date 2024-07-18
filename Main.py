@@ -16,17 +16,22 @@ load_dotenv()
 # Init text to speech engine
 tts_engine = pyttsx3.init()
 
-wake_word = "hey Jarvis"
+wake_word = "hey jarvis"
 last_prompt_time = time.time()
-global boolean_convo
-boolean_convo = False
 convo_wait_time = 8
 
 genai.configure(api_key=os.getenv("API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
+
+model = genai.GenerativeModel(
+    "gemini-1.5-flash",
+    generation_config = genai.GenerationConfig(
+        max_output_tokens = 100,
+        temperature = 0.9,
+    )
+)
 
 def play_sound(filename):
-    psong = AudioSegment.from_wav("/Sounds/"+filename)
+    psong = AudioSegment.from_wav("Sounds/"+filename)
     play(psong)
 
 
@@ -40,88 +45,85 @@ def audio_to_text(filename):
         print("Skipping unkown error")
 
 
-def generate_response(prompt):
-    response = model.generate_content("Respond with less than 100 words, SHORT. "+prompt)
+def generate_response(chat, prompt):
+    response = chat.send_message(prompt)
+
     t = response.text.replace("*","")
     t = t.replace("👋","")
     t = t.replace("😊","")
+
     return t
 
 
 def speak_text(text):
     tts_engine.say(text)
     tts_engine.runAndWait()
-    global last_prompt_time
-    last_prompt_time = time.time()
-    ##global boolean_convo
-    boolean_convo = True
+
 
 def main():
+    chat = model.start_chat(history=[])
+    is_convo = False
+
     while True:
         # Wait for wake up word to be said
         print(f"Say {wake_word} to begin your question")
         recognizer = sr.Recognizer()
 
-        if time.time() - last_prompt_time <= convo_wait_time:
-            play_sound("wakeup.wav")
-
         with sr.Microphone() as source:
+            if is_convo:
+                play_sound("wakeup.wav")
+
             audio = recognizer.listen(source)
             try:
                 transcription = recognizer.recognize_google(audio)
-                #play_sound("wakeup.wav")
-                can_continue = False
+                can_continue = is_convo
 
-                global boolean_convo
-                if boolean_convo == True:
+                # if not in a convo and wake word is said
+                if not is_convo and transcription.lower() == wake_word:
                     can_continue = True
 
-                # if there has been an extra long pause, and wake word is said
-                if time.time() - last_prompt_time > convo_wait_time and transcription.lower() == wake_word:
-                    can_continue = True
                 
-                # If short pause after taking, continue
-                # if time.time() - last_prompt_time <= convo_wait_time and transcription.lower() != "":
-                #     can_continue = True
-                #     is_convo = True
-
-
                 if can_continue:
-                    play_sound("sound2.wav")
+                    if not is_convo:
+                        play_sound("wakeup.wav")
+                    else:
+                        play_sound("sound2.wav")
 
                     # Record audio
                     filename = "input.wav"
                     print("Listening...")
                     text = ""
-                    if boolean_convo == False:
+
+                    if is_convo == False:
                         with sr.Microphone() as source:
                             recognizer = sr.Recognizer()
                             source.pause_threshold = 1
                             audio = recognizer.listen(source, phrase_time_limit = None, timeout = None)
+
                             with open(filename, "wb") as f:
                                 f.write(audio.get_wav_data())
 
                             # Transcribe audio to text
                             text = audio_to_text(filename)
                     else:
-                        print("Used convo!")
                         text = transcription.lower()
                     
                     if text:
+                        play_sound("sound2.wav")
 
                         print(f" I heard: {text}")
                         # Replace with custom commands here
 
                         # Generate response from GPT-3
-                        response = generate_response(text)
+                        response = generate_response(chat, text)
                         print(f"Gemini says: {response}")
-
+                        is_convo = True
                         # Read response using tts
                         speak_text(response)
 
             except Exception as e:
-                #global boolean_convo
-                #boolean_convo = False
+                # Failed for some reason
+                is_convo = False
                 print("And error occured: {}".format(e))
 
 
