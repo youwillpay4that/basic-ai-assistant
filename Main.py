@@ -1,13 +1,13 @@
-# Video Source: https://www.youtube.com/watch?v=8z8Cobsvc9k
-
 import os
 import time
 import google.generativeai as genai
 import speech_recognition as sr
 import pyttsx3
+
 from pydub import AudioSegment
 from pydub.playback import play
 from dotenv_vault import load_dotenv
+
 import configs
 
 load_dotenv()
@@ -42,7 +42,7 @@ def audio_to_text(filename):
 
 
 def generate_response(chat, prompt):
-    response = chat.send_message("Keep the response SHORT and to the POINT. "+prompt)
+    response = chat.send_message(configs.personality+prompt)
 
     t = response.text.replace("*","")
     t = t.replace("👋","")
@@ -62,6 +62,8 @@ def print_string(s):
 def main():
     chat = model.start_chat(history=[])
     is_convo = False
+
+    print("Running...")
 
     while True:
         # Wait for wake up word to be said
