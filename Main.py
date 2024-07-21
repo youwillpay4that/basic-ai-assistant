@@ -47,7 +47,7 @@ def generate_response(chat, prompt):
     t = response.text.replace("*","")
     t = t.replace("👋","")
     t = t.replace("😊","")
-
+    
     return t
 
 
