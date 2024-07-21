@@ -1,5 +1,4 @@
-import os
-import time
+import os, time
 import google.generativeai as genai
 import speech_recognition as sr
 import pyttsx3
