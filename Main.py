@@ -1,10 +1,10 @@
-import os, time
+import os, asyncio
 import google.generativeai as genai
 import speech_recognition as sr
-import pyttsx3
 
-from pydub import AudioSegment
-from pydub.playback import play
+import playsound as psound
+import pyttsx3
+import edge_tts
 from dotenv_vault import load_dotenv
 
 import configs
@@ -14,6 +14,9 @@ load_dotenv()
 # Init text to speech engine
 tts_engine = pyttsx3.init()
 wake_word = configs.wake_word.lower()
+
+output_file = "output.wav"
+input_file = "input.wav"
 
 genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
 
@@ -25,9 +28,12 @@ model = genai.GenerativeModel(
     )
 )
 
+async def aplay_sound(filename):
+    psound.playsound("Sounds/"+filename)
+
 def play_sound(filename):
-    psong = AudioSegment.from_wav("Sounds/"+filename)
-    play(psong)
+    psound.playsound("Sounds/"+filename)
+    #task = asyncio.create_task(aplay_sound(filename))
 
 
 def audio_to_text(filename):
@@ -50,18 +56,19 @@ def generate_response(chat, prompt):
     return t
 
 
-def speak_text(text):
-    tts_engine.say(text)
-    tts_engine.runAndWait()
+async def speak_text(text):
+    communicate = edge_tts.Communicate(text, configs.chosen_voice)
+    await communicate.save(output_file)
+    psound.playsound(output_file)
+
 
 def print_string(s):
     if configs.print_output:
         print(s)
 
-def main():
+async def amain():
     chat = model.start_chat(history=[])
     is_convo = False
-
     print("Running...")
 
     while True:
@@ -80,7 +87,7 @@ def main():
                 can_continue = is_convo
 
                 # if not in a convo and wake word is said
-                if not is_convo and transcription.lower() == wake_word:
+                if not is_convo and wake_word in transcription.lower():
                     can_continue = True
 
                 
@@ -120,7 +127,10 @@ def main():
                         is_convo = True
 
                         # Read response using tts
-                        speak_text(response)
+                        finish = speak_text(response)
+                        # set up hotkey interruption here
+                        await finish
+                         
 
             except Exception as e:
                 # Failed for some reason
@@ -129,6 +139,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(amain())
 
 
