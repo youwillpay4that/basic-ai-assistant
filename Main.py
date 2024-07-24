@@ -32,20 +32,12 @@ model = genai.GenerativeModel(
 )
 
 # Play sound asyncronously
-# async def aplay_sound(filename):
-#     psound.playsound("Sounds/"+filename)
-
 def aplay_sound(filename):
     threading.Thread(target=play_sound, args=(filename,), daemon=True).start()
 
 def play_sound(filename):
     psound.playsound("Sounds/"+filename)
     #task = asyncio.create_task(aplay_sound(filename))
-
-async def listen_hot_word(speak_task):
-    while True:
-        with sr.Microphone as source:
-            audio = sr.Recognizer().listen(source, phrase_time_limit = None, timeout = None)
 
 def audio_to_text(filename):
     recognizer = sr.Recognizer()
@@ -101,7 +93,6 @@ async def amain():
                 # if not in a convo and wake word is said
                 if not is_convo and wake_word in transcription.lower():
                     can_continue = True
-
                 
                 if can_continue:
                     if is_convo:
@@ -141,8 +132,7 @@ async def amain():
                         # Read response using tts
                         speaking_task = asyncio.create_task(speak_text(response))
                         
-                        # set up hotkey interruption here
-                        await speaking_task, hot_word_task
+                        await speaking_task
                          
 
             except Exception as e:

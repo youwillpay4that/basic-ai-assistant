@@ -24,13 +24,5 @@ All done! Run Main.py to start your chatbot!
 
 # Settings
 All settings are in configs.py. Defualt settings are pre-loaded.
-```
-model_name = # (str) Name of the model
-max_output_tokens = # (int) Maximum tokens the bot will respond with. 100 - 400 is my recommended range
-temperature = # (float) 0-2. 2 is very creative responses, 0 is determinsitic
-wake_word =  # (str) Word that will wake up the bot
-personality = # (str) Optional personality prompt sent with each response to the bot. Can leave blank if wished
-print_output = # (bool) If the bot will also respond via terminal
-```
 
 All audio cues are inside the Sounds folder, fully customizable.
