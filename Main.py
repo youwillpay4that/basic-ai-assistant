@@ -5,6 +5,8 @@ import speech_recognition as sr
 import playsound as psound
 import pyttsx3
 import edge_tts
+import threading
+
 from dotenv_vault import load_dotenv
 
 import configs
@@ -25,16 +27,25 @@ model = genai.GenerativeModel(
     generation_config = genai.GenerationConfig(
         max_output_tokens = configs.max_output_tokens,
         temperature = configs.temperature,
+        safety_settings = configs.safety_settings
     )
 )
 
-async def aplay_sound(filename):
-    psound.playsound("Sounds/"+filename)
+# Play sound asyncronously
+# async def aplay_sound(filename):
+#     psound.playsound("Sounds/"+filename)
+
+def aplay_sound(filename):
+    threading.Thread(target=play_sound, args=(filename,), daemon=True).start()
 
 def play_sound(filename):
     psound.playsound("Sounds/"+filename)
     #task = asyncio.create_task(aplay_sound(filename))
 
+async def listen_hot_word(speak_task):
+    while True:
+        with sr.Microphone as source:
+            audio = sr.Recognizer().listen(source, phrase_time_limit = None, timeout = None)
 
 def audio_to_text(filename):
     recognizer = sr.Recognizer()
@@ -45,7 +56,7 @@ def audio_to_text(filename):
     except:
         print_string("Skipping unkown error")
 
-
+# Get Ai Generated Response from Bot
 def generate_response(chat, prompt):
     response = chat.send_message(configs.personality+prompt)
 
@@ -55,7 +66,7 @@ def generate_response(chat, prompt):
     
     return t
 
-
+# Speak the audio out loud
 async def speak_text(text):
     communicate = edge_tts.Communicate(text, configs.chosen_voice)
     await communicate.save(output_file)
@@ -79,7 +90,8 @@ async def amain():
         with sr.Microphone() as source:
 
             if is_convo:
-                play_sound("wakeup.wav")
+                aplay_sound("wakeup.wav")               
+                #asyncio.create_task(aplay_sound("wakeup.wav"))
 
             audio = recognizer.listen(source)
             try:
@@ -93,7 +105,7 @@ async def amain():
                 
                 if can_continue:
                     if is_convo:
-                        play_sound("sound2.wav")
+                        aplay_sound("sound2.wav")
 
                     # Record audio
                     filename = "input.wav"
@@ -105,7 +117,7 @@ async def amain():
                             recognizer = sr.Recognizer()
                             source.pause_threshold = 1
 
-                            play_sound("wakeup.wav")
+                            aplay_sound("wakeup.wav")
                             audio = recognizer.listen(source, phrase_time_limit = None, timeout = None)
 
                             with open(filename, "wb") as f:
@@ -114,7 +126,7 @@ async def amain():
                             # Transcribe audio to text
                             text = audio_to_text(filename)
                             
-                            play_sound("sound2.wav")
+                            aplay_sound("sound2.wav")
                     else:
                         text = transcription.lower()
                     
@@ -127,9 +139,10 @@ async def amain():
                         is_convo = True
 
                         # Read response using tts
-                        finish = speak_text(response)
+                        speaking_task = asyncio.create_task(speak_text(response))
+                        
                         # set up hotkey interruption here
-                        await finish
+                        await speaking_task, hot_word_task
                          
 
             except Exception as e:
