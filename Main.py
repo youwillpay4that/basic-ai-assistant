@@ -1,16 +1,15 @@
-import os, asyncio
+
+from faster_whisper import WhisperModel
+from dotenv_vault import load_dotenv
 import google.generativeai as genai
 import speech_recognition as sr
-
 import playsound as psound
 import pyttsx3
 import edge_tts
-import threading
-
-from dotenv_vault import load_dotenv
+import os, asyncio, time, threading
+import openai
 
 import configs
-
 load_dotenv()
 
 # Init text to speech engine
@@ -20,15 +19,24 @@ wake_word = configs.wake_word.lower()
 output_file = "output.wav"
 input_file = "input.wav"
 
-genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
+genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+openai_client = openai(api_key=os.environ["OPENAI_API_KEY"])
 
-model = genai.GenerativeModel(
+gemini_model = genai.GenerativeModel(
     configs.model_name,
     generation_config = genai.GenerationConfig(
         max_output_tokens = configs.max_output_tokens,
         temperature = configs.temperature,
         safety_settings = configs.safety_settings
     )
+)
+
+whisper_model = WhisperModel(
+    "base",
+    device="cpu",
+    compute_type="int8",
+    cpu_threads=2,
+    num_workers=2,
 )
 
 # Play sound asyncronously
@@ -40,13 +48,29 @@ def play_sound(filename):
     #task = asyncio.create_task(aplay_sound(filename))
 
 def audio_to_text(filename):
+    segments, info = whisper_model.transcribe(filename)
+    text = "".join(part.text for part in segments)
+
+    return text
+
+def listen_callback(recognizer ,audio):
+    filename = "input.wav"
+    with open(filename, "wb") as f:
+        # Write data into audiofile
+        f.write(audio.get_wav_data())
+
+    text = audio_to_text(filename)
+
+def begin_listening(r):
     recognizer = sr.Recognizer()
-    with sr.AudioFile(filename) as source:
-        audio = recognizer.record(source)
-    try:
-        return recognizer.recognize_google(audio)
-    except:
-        print_string("Skipping unkown error")
+    audio_source = sr.Microphone()
+
+    recognizer.adjust_for_ambient_noise(audio_source, duration=2)
+    recognizer.listen_in_background(audio_source, listen_callback)
+
+    while True:
+        time.sleep(0.5)
+    
 
 # Get Ai Generated Response from Bot
 def generate_response(chat, prompt):
@@ -64,13 +88,18 @@ async def speak_text(text):
     await communicate.save(output_file)
     psound.playsound(output_file)
 
-
 def print_string(s):
     if configs.print_output:
         print(s)
 
 async def amain():
-    chat = model.start_chat(history=[])
+    chat = gemini_model.start_chat(history=[])
+    
+    recognizer = sr.Recognizer()
+    audio_source = sr.Microphone()
+
+    recognizer.adjust_for_ambient_noise(audio_source, 2)
+
     is_convo = False
     print("Running...")
 
@@ -143,5 +172,3 @@ async def amain():
 
 if __name__ == "__main__":
     asyncio.run(amain())
-
-

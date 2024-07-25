@@ -1,5 +1,7 @@
 speech_recognition
+playsound
 pyttsx3
 pydub
 python-dotenv
 python-dotenv-vault
+openai
