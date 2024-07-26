@@ -7,7 +7,9 @@ import playsound as psound
 import pyttsx3
 import edge_tts
 import os, asyncio, time, threading
-import openai
+import smokesignal
+
+
 
 import configs
 load_dotenv()
@@ -18,16 +20,16 @@ wake_word = configs.wake_word.lower()
 
 output_file = "output.wav"
 input_file = "input.wav"
-
+#print(os.environ["OPENAI_API_KEY"])
 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-openai_client = openai(api_key=os.environ["OPENAI_API_KEY"])
+#openai_client = openai(api_key=os.environ["OPENAI_API_KEY"])
 
 gemini_model = genai.GenerativeModel(
-    configs.model_name,
+    model_name = configs.model_name,
+    safety_settings = configs.safety_settings,
     generation_config = genai.GenerationConfig(
         max_output_tokens = configs.max_output_tokens,
         temperature = configs.temperature,
-        safety_settings = configs.safety_settings
     )
 )
 
@@ -39,6 +41,11 @@ whisper_model = WhisperModel(
     num_workers=2,
 )
 
+# Print output
+def print_string(s):
+    if configs.print_output:
+        print(s)
+
 # Play sound asyncronously
 def aplay_sound(filename):
     threading.Thread(target=play_sound, args=(filename,), daemon=True).start()
@@ -47,30 +54,6 @@ def play_sound(filename):
     psound.playsound("Sounds/"+filename)
     #task = asyncio.create_task(aplay_sound(filename))
 
-def audio_to_text(filename):
-    segments, info = whisper_model.transcribe(filename)
-    text = "".join(part.text for part in segments)
-
-    return text
-
-def listen_callback(recognizer ,audio):
-    filename = "input.wav"
-    with open(filename, "wb") as f:
-        # Write data into audiofile
-        f.write(audio.get_wav_data())
-
-    text = audio_to_text(filename)
-
-def begin_listening(r):
-    recognizer = sr.Recognizer()
-    audio_source = sr.Microphone()
-
-    recognizer.adjust_for_ambient_noise(audio_source, duration=2)
-    recognizer.listen_in_background(audio_source, listen_callback)
-
-    while True:
-        time.sleep(0.5)
-    
 
 # Get Ai Generated Response from Bot
 def generate_response(chat, prompt):
@@ -88,9 +71,69 @@ async def speak_text(text):
     await communicate.save(output_file)
     psound.playsound(output_file)
 
-def print_string(s):
-    if configs.print_output:
-        print(s)
+def audio_to_text(filename):
+    segments, info = whisper_model.transcribe(filename)
+    text = "".join(part.text for part in segments)
+
+    return text
+
+
+def listen_callback(recognizer, audio):
+    try:
+        filename = "input.wav"
+        with open(filename, "wb") as f:
+            # Write data into audiofile
+            f.write(audio.get_wav_data())
+
+        text = audio_to_text(filename)
+        
+        print_string("I heard: ",text)
+
+        if wake_word in text:
+            aplay_sound("wakeup.wav")
+            reponse = generate_response(chat, text)
+            speak_text(reponse)
+    except:
+        smokesignal.emit("prompt_finished")
+        return
+    
+    smokesignal.emit("prompt_finished")
+
+
+
+def begin_listening(recognizer, audio_source):
+    stop_func = recognizer.listen_in_background(audio_source, callback=listen_callback)
+    good = True
+
+    def exit():
+        stop_func()
+        good = False
+
+    # Stop listening once the bot has begun speaking, (switch to hot word detection...)
+    smokesignal.once("prompt_started", exit)
+
+    while good:
+        time.sleep(0.5)
+
+
+async def main():
+    global chat
+    chat = gemini_model.start_chat(history=[])
+
+    running = True
+    
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as audio_source:
+        recognizer.adjust_for_ambient_noise(source=audio_source, duration=2)
+    
+    print("Running!")
+    
+    begin_listening(recognizer, audio_source)
+    smokesignal.on("prompt_finished", begin_listening)
+
+    while running:
+        time.sleep(0.5)
+
 
 async def amain():
     chat = gemini_model.start_chat(history=[])
@@ -171,4 +214,5 @@ async def amain():
 
 
 if __name__ == "__main__":
-    asyncio.run(amain())
+    asyncio.run(main())
+    #main()

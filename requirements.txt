@@ -1,7 +1,10 @@
+faster-whisper
 speech_recognition
+edge_tts
 playsound
 pyttsx3
 pydub
 python-dotenv
 python-dotenv-vault
 openai
+smokesignal
