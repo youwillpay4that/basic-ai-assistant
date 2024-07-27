@@ -66,76 +66,136 @@ def generate_response(chat, prompt):
     return t
 
 # Speak the audio out loud
-async def speak_text(text):
+# async def speak_text(text):
+#     communicate = edge_tts.Communicate(text, configs.chosen_voice)
+#     await communicate.save(output_file)
+#     psound.playsound(output_file)
+#     smokesignal.emit("finished_speaking")
+
+def speak_text(text):
     communicate = edge_tts.Communicate(text, configs.chosen_voice)
-    await communicate.save(output_file)
+
+    with open(output_file, "wb") as file:
+        for chunk in communicate.stream_sync():
+            if chunk["type"] == "audio":
+                file.write(chunk["data"])
+            elif chunk["type"] == "WordBoundary":
+                print(f"WordBoundary: {chunk}")
+
     psound.playsound(output_file)
+    smokesignal.emit("finished_speaking")
+    
+
 
 def audio_to_text(filename):
     segments, info = whisper_model.transcribe(filename)
     text = "".join(part.text for part in segments)
 
-    return text
+    return text.lower()
 
 
 def listen_callback(recognizer, audio):
+    if processing:
+        return 
+    
+    print("made to callback!")
+    filename = "input.wav"
+    text = ""
+
+    with open(filename, "wb") as f:
+        # Write data into audiofile
+        f.write(audio.get_wav_data())
+
     try:
-        filename = "input.wav"
-        with open(filename, "wb") as f:
-            # Write data into audiofile
-            f.write(audio.get_wav_data())
-
         text = audio_to_text(filename)
-        
-        print_string("I heard: ",text)
-
-        if wake_word in text:
-            aplay_sound("wakeup.wav")
-            reponse = generate_response(chat, text)
-            speak_text(reponse)
-    except:
+    except Exception as e:
+        # Failed for some reason
+        print_string("And error occured in listen_callback: {}".format(e))
         smokesignal.emit("prompt_finished")
         return
     
+    smokesignal.emit("prompt_started")
+
+    print_string(f"I heard:{text} ")
+
+    if "a" in text:
+        ##aplay_sound("wakeup.wav")
+        response = generate_response(chat, text)
+
+        print_string("Bot says:"+response)
+        speak_text(response)
+        # task = asyncio.create_task()
+        
+        # good = True
+
+        # def call():
+        #     nonlocal good
+        #     good = False
+        # smokesignal.once("finished_speaking",call)
+
+        # while good:
+        #     time.sleep(0.1)
+   
+    
     smokesignal.emit("prompt_finished")
-
-
-
-def begin_listening(recognizer, audio_source):
-    stop_func = recognizer.listen_in_background(audio_source, callback=listen_callback)
-    good = True
-
-    def exit():
-        stop_func()
-        good = False
-
-    # Stop listening once the bot has begun speaking, (switch to hot word detection...)
-    smokesignal.once("prompt_started", exit)
-
-    while good:
-        time.sleep(0.5)
 
 
 async def main():
     global chat
     chat = gemini_model.start_chat(history=[])
 
+    global processing
+    processing = False
     running = True
     
+    stop_func = None
+
     recognizer = sr.Recognizer()
     with sr.Microphone() as audio_source:
         recognizer.adjust_for_ambient_noise(source=audio_source, duration=2)
     
     print("Running!")
     
-    begin_listening(recognizer, audio_source)
-    smokesignal.on("prompt_finished", begin_listening)
+    is_processing = False
+
+    def custom_stop():
+        print("custom stop called ;)")
+        # nonlocal stop_func
+        # stop_func(False)
+        nonlocal is_processing
+        is_processing = True
+        print("custom stop finished I see")
+
+    # Call the listen function again
+    def listen_again():
+        nonlocal is_processing
+        is_processing = True
+        # nonlocal stop_func
+        # stop_func = recognizer.listen_in_background(audio_source, callback=listen_callback)
+        # smokesignal.once("prompt_started", custom_stop)
+
+        print("got here")
+
+    # Work around not having an async function!
+    def simple_callback(r, a):
+        listen_callback(r, a, is_processing)
+
+    stop_func = recognizer.listen_in_background(audio_source, callback=simple_callback)
+
+    smokesignal.on("")
+
+    # Stop listening once prompt has begun
+    smokesignal.on("prompt_started", custom_stop)
+
+    # Resume listening once prompt has finished
+    smokesignal.on("prompt_finished", listen_again)
+
 
     while running:
         time.sleep(0.5)
 
 
-async def amain():
+async def aoldmain():
     chat = gemini_model.start_chat(history=[])
     
     recognizer = sr.Recognizer()

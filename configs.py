@@ -13,7 +13,7 @@ safety_settings = {
 }
 
 # Customization
-wake_word = "dave" 
+wake_word = "jarvis" 
 personality = "Be creative and a little sarcastic. Keep answers SHORT. "
 hot_word = "tiger"
 
