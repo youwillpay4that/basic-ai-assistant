@@ -1,9 +1,13 @@
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+
 # Google Gemini
 model_name = "gemini-1.5-flash-latest"
 max_output_tokens = 200 
 temperature = 1.5
 print_output = True
+advanced_audio_recog = False
+
+time_trials = True
 
 safety_settings = {
    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
@@ -11,6 +15,8 @@ safety_settings = {
    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE
 }
+
+# Audio Recog
 
 # Customization
 wake_word = "jarvis" 
