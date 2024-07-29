@@ -1,12 +1,13 @@
 from faster_whisper import WhisperModel
 from pygame import mixer
-import wave
 import speech_recognition as sr
-import librosa
 import playsound as psound
 import edge_tts
 import configs
-import time
+import time, math, threading
+import smokesignal
+
+
 #from Main import print_string
 output_file = configs.output_file
 
@@ -20,15 +21,18 @@ if configs.advanced_audio_recog:
         num_workers=2,
     )
 
+# Play sound asyncronously
+def aplay_sound(filename):
+    threading.Thread(target=play_sound, args=(filename,), daemon=True).start()
+
+# Play sound
+def play_sound(filename):
+    psound.playsound("Sounds/"+filename)
 
 def print_string(s):
     if configs.print_output:
         print(s)
 
-
-    
-print('wopw')
-print(get_audio_length("output.wav"))
 # Speak the audio out loud using edge_tts
 def speak_text(text):
     communicate = edge_tts.Communicate(text, configs.chosen_voice)
@@ -39,19 +43,26 @@ def speak_text(text):
                 file.write(chunk["data"])
 
     sound = mixer.Sound(output_file)
+    flag = False
+
+    def stop_func():
+        nonlocal flag, sound
+        flag = True
+        sound.stop()
+
+    smokesignal.once("hot_word_said",stop_func)
     sound.play()
 
-    time.sleep(get_audio_length(output_file))
-    return 
-    # def play():
-    #     psound.playsound("output.wav")
+    for x in range(0, math.trunc(sound.get_length()*10)):
+        time.sleep(0.1)
+        if flag: return
+    
+    smokesignal.disconnect(stop_func)
 
-    # thread = threading.Thread(target=play, daemon=True)
-    # thread.start()
-    # time.sleep(3)
-    # thread.join()
-    # psound.playsound(output_file)
-    #smokesignal.emit("finished_speaking")
+    return 
+
+def stop_speaking():
+    smokesignal.emit("hot_word_said")
 
 # Transcribe audio to text
 def audio_to_text(filename):

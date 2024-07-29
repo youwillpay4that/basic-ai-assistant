@@ -5,7 +5,6 @@ import google.generativeai as genai
 import speech_recognition as sr
 import playsound as psound
 import pyttsx3
-import edge_tts
 import os, time, threading
 import smokesignal
 
@@ -40,27 +39,46 @@ def print_string(s):
 
 # Print output with time
 start_time = time.time()
+
 def tprint(s=""):
     if configs.time_trials: print(s,round(time.time()-start_time),2)
-
-# Play sound asyncronously
-def aplay_sound(filename):
-    threading.Thread(target=play_sound, args=(filename,), daemon=True).start()
-# Play sound
-def play_sound(filename):
-    psound.playsound("Sounds/"+filename)
 
 
 # Get Ai Generated Response from Bot
 def generate_response(chat, prompt):
     response = chat.send_message(configs.personality + prompt)
+    text = response.text
+    text = text.replace("*","")
+
+    return text
+
+# Check if user said the hot word
+def check_if_hotword(audio):
+    print("HIT CALLBACK")
+    open("input.wav", "wb").write(audio.get_wav_data())
+
+    try:
+        text = audio_handler.audio_to_text("input.wav")
+
+        if text == None: return
+        if configs.hot_word in text:
+            print_string("Heard hot word!")
+            audio.stop_speaking()
+
+    except Exception as e:
+        return
+
+def can_chat(text, is_convo):
+    if text == None or text == "": return False
+    if is_convo: return True
+    if wake_word in text: return True 
     
-    return response.text
 
-
-# Respond to 
-def listen_callback(recognizer, audio, is_processing, chat):
-    if is_processing: return 
+# Respond to callback
+def listen_callback(recognizer, audio, is_processing, chat, is_convo):
+    if is_processing: 
+        check_if_hotword(audio) 
+        return 
     
     tprint("Hit callback!")
 
@@ -70,26 +88,23 @@ def listen_callback(recognizer, audio, is_processing, chat):
     with open(filename, "wb") as f:
         # Write data into audiofile
         f.write(audio.get_wav_data())
+    
     try:
         text = audio_handler.audio_to_text(filename)
-
         if text == None: return
-
         tprint("Transcribing done! ")
-        aplay_sound("wakeup.wav")
-
     except Exception as e:
         # Failed for some reason
         print_string("And error occured in listen_callback: {}".format(e))
         smokesignal.emit("prompt_finished")
         return
-    
-    smokesignal.emit("prompt_started")
+ 
 
-    print_string(f"I heard: {text} ")
+    if can_chat(text, is_convo):
+        audio_handler.aplay_sound("wakeup.wav")
+        smokesignal.emit("prompt_started")
+        print_string(f"I heard: {text} ")
 
-    if text != None and " " in text:
-        ##aplay_sound("wakeup.wav")
         response = generate_response(chat, text)
 
         print_string("Bot says: "+response)
@@ -98,6 +113,7 @@ def listen_callback(recognizer, audio, is_processing, chat):
    
     
     smokesignal.emit("prompt_finished")
+    return True
 
 
 def main():
@@ -115,18 +131,23 @@ def main():
     print("Running!")
     
     is_processing = False
+    is_convo = False
 
     def interaction_began():
-        nonlocal is_processing
+        nonlocal is_processing, is_convo
         is_processing = True
+        is_convo = True
 
     def interaction_ended():
         nonlocal is_processing
         is_processing = False
 
+
+
     # Work around not having an async function!
     def simple_callback(r, a):
-        listen_callback(r, a, is_processing, chat)
+        nonlocal is_convo
+        is_convo = listen_callback(r, a, is_processing, chat, is_convo)
 
 
     stop_func = recognizer.listen_in_background(audio_source, callback=simple_callback)

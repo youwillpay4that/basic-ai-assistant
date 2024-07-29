@@ -15,7 +15,7 @@ safety_settings = {
    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-   HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE
+   HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH
 }
 
 # Audio Recog 
@@ -25,9 +25,13 @@ output_file = "output.wav"
 input_file = "input.wav"
 
 # Customization
-wake_word = "jarvis" 
-personality = "You are an AI assistant. Be creative and a little sarcastic. Keep answers SHORT. "
-hot_word = "tiger"
+wake_word = "jarvis" # lowercase only
+hot_word = "tiger" # lowercase only
+
+personality = f'''[SYSTEM MESSAGE]You are an AI assistant. 
+Be creative and a little sarcastic. 
+Keep answers SHORT and DO NOT say {hot_word}, 
+it as a hotword for the User to interupt your TTS. [END OF SYSTEM MESSAGE] '''
 
 # Edge TTS Settings
 voices = ['en-US-GuyNeural', 'en-US-JennyNeural', 'en-US-MichelleNeural', "en-US-EricNeural", "en-HK-YanNeural", "en-NG-EzinneNeural"]
