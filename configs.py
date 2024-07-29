@@ -1,12 +1,14 @@
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+import speech_recognition as sr
+import math
 
 # Google Gemini
 model_name = "gemini-1.5-flash-latest"
 max_output_tokens = 200 
 temperature = 1.5
+
 print_output = True
 advanced_audio_recog = False
-
 time_trials = True
 
 safety_settings = {
@@ -16,11 +18,15 @@ safety_settings = {
    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE
 }
 
-# Audio Recog
+# Audio Recog 
+sample_rate = sr.Microphone().SAMPLE_RATE # 44.1K
+chunk_size = math.trunc(sr.Microphone().CHUNK * 0.85) # 1024
+output_file = "output.wav"
+input_file = "input.wav"
 
 # Customization
 wake_word = "jarvis" 
-personality = "Be creative and a little sarcastic. Keep answers SHORT. "
+personality = "You are an AI assistant. Be creative and a little sarcastic. Keep answers SHORT. "
 hot_word = "tiger"
 
 # Edge TTS Settings

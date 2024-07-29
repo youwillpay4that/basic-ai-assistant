@@ -1,5 +1,15 @@
-import speech_recognition as sr
+
+from pygame import mixer
+import time
+mixer.init() #Initialzing pyamge mixer
 
 
-print(sr.Microphone().SAMPLE_RATE) # 44100
-print(sr.Microphone().CHUNK) # 1024
+print("Playing",time.time())
+a = mixer.Sound("output.wav")
+a.play() #Playing Music with Pygame
+
+time.sleep(5)
+
+print("Stopping", time.time())
+a.stop()
+print("fine",time.time())
