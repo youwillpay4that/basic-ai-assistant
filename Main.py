@@ -24,10 +24,10 @@ genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
 
 model = genai.GenerativeModel(
     configs.model_name,
+    safety_settings = configs.safety_settings,
     generation_config = genai.GenerationConfig(
         max_output_tokens = configs.max_output_tokens,
         temperature = configs.temperature,
-        safety_settings = configs.safety_settings
     )
 )
 
