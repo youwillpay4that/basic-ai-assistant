@@ -21,6 +21,9 @@ if configs.advanced_audio_recog:
         num_workers=2,
     )
 
+def init():
+    mixer.init()
+
 # Play sound asyncronously
 def aplay_sound(filename):
     threading.Thread(target=play_sound, args=(filename,), daemon=True).start()
@@ -49,13 +52,14 @@ def speak_text(text):
         nonlocal flag, sound
         flag = True
         sound.stop()
+        print("sound stopped!")
 
     smokesignal.once("hot_word_said",stop_func)
     sound.play()
 
     for x in range(0, math.trunc(sound.get_length()*10)):
         time.sleep(0.1)
-        if flag: return
+        if flag: break
     
     smokesignal.disconnect(stop_func)
 

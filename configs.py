@@ -16,11 +16,12 @@ safety_settings = {
    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH
+   # BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE
 }
 
 # Audio Recog 
 sample_rate = sr.Microphone().SAMPLE_RATE # 44.1K
-chunk_size = math.trunc(sr.Microphone().CHUNK * 0.85) # 1024
+chunk_size = sr.Microphone().CHUNK # 1024
 output_file = "output.wav"
 input_file = "input.wav"
 
@@ -28,8 +29,8 @@ input_file = "input.wav"
 wake_word = "jarvis" # lowercase only
 hot_word = "tiger" # lowercase only
 
-personality = f'''[SYSTEM MESSAGE]You are an AI assistant. 
-Be creative and a little sarcastic. 
+personality = f'''[SYSTEM MESSAGE] You are a helpful AI assistant. 
+Be creative and a tiny bit sarcastic.
 Keep answers SHORT and DO NOT say {hot_word}, 
 it as a hotword for the User to interupt your TTS. [END OF SYSTEM MESSAGE] '''
 
