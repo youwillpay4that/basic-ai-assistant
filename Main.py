@@ -3,18 +3,14 @@ from dotenv_vault import load_dotenv
 from pygame import mixer
 import google.generativeai as genai
 import speech_recognition as sr
-import playsound as psound
-import pyttsx3
-import os, time, threading
+import os, time, math
 import smokesignal
 
 import audio as audio_handler
 import configs
 load_dotenv()
 
-# Init text to speech engine
-tts_engine = pyttsx3.init()
-mixer.init() #Initialzing pyamge mixer
+audio_handler.init() #Initialzing pyamge mixer
 
 wake_word = configs.wake_word.lower()
 output_file = configs.output_file
@@ -63,7 +59,7 @@ def check_if_hotword(audio):
         if text == None: return
         if configs.hot_word in text:
             print_string("Heard hot word!")
-            audio.stop_speaking()
+            audio_handler.stop_speaking()
 
     except Exception as e:
         return
@@ -76,6 +72,7 @@ def can_chat(text, is_convo):
 
 # Respond to callback
 def listen_callback(recognizer, audio, is_processing, chat, is_convo):
+    print('ok.,..sd')
     if is_processing: 
         check_if_hotword(audio) 
         return 
@@ -123,8 +120,7 @@ def main():
     
     recognizer = sr.Recognizer()
     audio_source = sr.Microphone()
-    sr.Microphone(chunk_size=configs.chunk_size, sample_rate=configs.sample_rate)
-
+    sr.Microphone(chunk_size=math.trunc(configs.chunk_size), sample_rate=math.trunc(configs.sample_rate))
     # with sr.Microphone() as audio_source:
     # recognizer.adjust_for_ambient_noise(source=audio_source, duration=2)
     
@@ -142,15 +138,12 @@ def main():
         nonlocal is_processing
         is_processing = False
 
-
-
     # Work around not having an async function!
     def simple_callback(r, a):
         nonlocal is_convo
         is_convo = listen_callback(r, a, is_processing, chat, is_convo)
 
-
-    stop_func = recognizer.listen_in_background(audio_source, callback=simple_callback)
+    stop_func = recognizer.listen_in_background(audio_source,  callback=simple_callback)
 
     # Stop listening once prompt has begun
     smokesignal.on("prompt_started", interaction_began)
