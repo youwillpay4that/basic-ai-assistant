@@ -10,8 +10,10 @@ import smokesignal
 
 #from Main import print_string
 output_file = configs.output_file
-current_audio
+current_audio = ""
 whisper_model = ""
+
+recognizer = sr.Recognizer()
 
 if configs.advanced_audio_recog:
     whisper_model = WhisperModel(
@@ -25,9 +27,15 @@ if configs.advanced_audio_recog:
 def init():
     mixer.init()
 
+def get_source():
+    return sr.Microphone(chunk_size=math.trunc(configs.chunk_size), sample_rate=math.trunc(configs.sample_rate))
+
 # Play sound asyncronously
 def aplay_sound(filename):
     threading.Thread(target=play_sound, args=(filename,), daemon=True).start()
+
+def is_playing():
+    return mixer.get_busy()
 
 # Play sound
 def play_sound(filename):
@@ -51,34 +59,26 @@ def speak_text(text):
     current_audio = sound
 
     sound.play()
-    print('played audio ._.')
 
 
-
-def get_mixer():
-    return mixer
-    
 def stop_speaking():
     if not current_audio: return
     current_audio.stop()
 
 # Transcribe audio to text
-def audio_to_text(filename):
+def audio_to_text(audio, filename="whisper_transcribe.wav"):
     if configs.advanced_audio_recog:
+        with open(filename, "wb") as f:
+            # Write data into audiofile
+            f.write(audio.get_wav_data())
+
         segments, info = whisper_model.transcribe(filename)
         text = "".join(part.text for part in segments)
 
         return text.lower()
     
-    recognizer = sr.Recognizer()
-    with sr.AudioFile(filename) as source:
-        audio = recognizer.record(source)
     try:
         return recognizer.recognize_google(audio).lower()
     except:
-        print_string("Skipping unkown error")
-
-# init()
-# speak_text("Hey Hey Hey. HeyHeyHeyHeyHey. ok buddy! Okay kid. HeyHeyHeyHeyHeyHeyHeyHeyHey!")
-# time.sleep(3)
-# stop_speaking()
+        print_string("Skipping, no hot word heard")
+        

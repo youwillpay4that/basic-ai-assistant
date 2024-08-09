@@ -28,6 +28,7 @@ input_file = "input.wav"
 wake_word = "jarvis" # lowercase only
 hot_word = "tiger" # lowercase only
 
+
 personality = f'''[SYSTEM MESSAGE]You are an AI assistant. 
 Be creative and a little sarcastic. 
 Keep answers SHORT and DO NOT say {hot_word}, 
