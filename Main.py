@@ -55,28 +55,38 @@ def check_if_hotword(audio):
 
     try:
         text = audio_handler.audio_to_text("input.wav")
+        if text == None: return "other"
 
-        if text == None: return
         if configs.hot_word in text:
             print_string("Heard hot word!")
             audio_handler.stop_speaking()
+            return True
 
     except Exception as e:
-        return
+        print("erm hotword error",e)
+        return "other"
+    
+    return "other"
 
 def can_chat(text, is_convo):
+    print(is_convo)
     if text == None or text == "": return False
     if is_convo: return True
     if wake_word in text: return True 
     
 
 # Respond to callback
-def listen_callback(recognizer, audio, is_processing, chat, is_convo):
-    print('ok.,..sd')
-    if is_processing: 
-        check_if_hotword(audio) 
-        return 
+def listen_callback(recognizer, audio, is_processing, chat, is_convo, set_process):
+    print("erm")
+    # If audio is being played, then run hotword
+    if audio_handler.get_mixer().get_busy(): 
+        return check_if_hotword(audio) 
+
+    # If script is currently running, just exit 
+    if is_processing: return
     
+    set_process(True)
+
     tprint("Hit callback!")
 
     filename = "input.wav"
@@ -90,6 +100,7 @@ def listen_callback(recognizer, audio, is_processing, chat, is_convo):
         text = audio_handler.audio_to_text(filename)
         if text == None: return
         tprint("Transcribing done! ")
+
     except Exception as e:
         # Failed for some reason
         print_string("And error occured in listen_callback: {}".format(e))
@@ -106,11 +117,14 @@ def listen_callback(recognizer, audio, is_processing, chat, is_convo):
 
         print_string("Bot says: "+response)
         tprint("Speaking result! ")
+        
         audio_handler.speak_text(response)
-   
-    
+
+        return True
+
+
+def speaking_finished():
     smokesignal.emit("prompt_finished")
-    return True
 
 
 def main():
@@ -119,8 +133,8 @@ def main():
     running = True
     
     recognizer = sr.Recognizer()
-    audio_source = sr.Microphone()
-    sr.Microphone(chunk_size=math.trunc(configs.chunk_size), sample_rate=math.trunc(configs.sample_rate))
+    audio_source = sr.Microphone(chunk_size=math.trunc(configs.chunk_size), sample_rate=math.trunc(configs.sample_rate))
+    # sr.Microphone()
     # with sr.Microphone() as audio_source:
     # recognizer.adjust_for_ambient_noise(source=audio_source, duration=2)
     
@@ -129,28 +143,19 @@ def main():
     is_processing = False
     is_convo = False
 
-    def interaction_began():
-        nonlocal is_processing, is_convo
-        is_processing = True
-        is_convo = True
-
-    def interaction_ended():
+    def set_process(b):
         nonlocal is_processing
-        is_processing = False
+        is_processing = b
 
     # Work around not having an async function!
     def simple_callback(r, a):
-        nonlocal is_convo
-        is_convo = listen_callback(r, a, is_processing, chat, is_convo)
+        nonlocal is_convo, is_processing
+        result = listen_callback(r, a, is_processing, chat, is_convo, set_process)
+        if result == "other": return
+        is_convo = result
+        is_processing = False
 
-    stop_func = recognizer.listen_in_background(audio_source,  callback=simple_callback)
-
-    # Stop listening once prompt has begun
-    smokesignal.on("prompt_started", interaction_began)
-
-    # Resume listening once prompt has finished
-    smokesignal.on("prompt_finished", interaction_ended)
-
+    recognizer.listen_in_background(audio_source,  callback=simple_callback)
 
     while running:
         time.sleep(0.5)

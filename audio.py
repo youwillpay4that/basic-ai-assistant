@@ -10,8 +10,9 @@ import smokesignal
 
 #from Main import print_string
 output_file = configs.output_file
-
+current_audio
 whisper_model = ""
+
 if configs.advanced_audio_recog:
     whisper_model = WhisperModel(
         "base",
@@ -20,6 +21,9 @@ if configs.advanced_audio_recog:
         cpu_threads=2,
         num_workers=2,
     )
+
+def init():
+    mixer.init()
 
 # Play sound asyncronously
 def aplay_sound(filename):
@@ -43,26 +47,20 @@ def speak_text(text):
                 file.write(chunk["data"])
 
     sound = mixer.Sound(output_file)
-    flag = False
+    global current_audio
+    current_audio = sound
 
-    def stop_func():
-        nonlocal flag, sound
-        flag = True
-        sound.stop()
-
-    smokesignal.once("hot_word_said",stop_func)
     sound.play()
+    print('played audio ._.')
 
-    for x in range(0, math.trunc(sound.get_length()*10)):
-        time.sleep(0.1)
-        if flag: return
+
+
+def get_mixer():
+    return mixer
     
-    smokesignal.disconnect(stop_func)
-
-    return 
-
 def stop_speaking():
-    smokesignal.emit("hot_word_said")
+    if not current_audio: return
+    current_audio.stop()
 
 # Transcribe audio to text
 def audio_to_text(filename):
@@ -79,3 +77,8 @@ def audio_to_text(filename):
         return recognizer.recognize_google(audio).lower()
     except:
         print_string("Skipping unkown error")
+
+# init()
+# speak_text("Hey Hey Hey. HeyHeyHeyHeyHey. ok buddy! Okay kid. HeyHeyHeyHeyHeyHeyHeyHeyHey!")
+# time.sleep(3)
+# stop_speaking()
