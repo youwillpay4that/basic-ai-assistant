@@ -80,5 +80,5 @@ def audio_to_text(audio, filename="whisper_transcribe.wav"):
     try:
         return recognizer.recognize_google(audio).lower()
     except:
-        print_string("Skipping, no hot word heard")
+        print_string("Skipping, no words heard")
         
