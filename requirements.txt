@@ -1,10 +1,8 @@
+edge-tts
 faster-whisper
-speech_recognition
-edge_tts
+google-generativeai
+groq
 playsound
-pyttsx3
-pydub
-python-dotenv
+pygame
 python-dotenv-vault
-openai
-smokesignal
+SpeechRecognition

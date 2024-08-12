@@ -5,7 +5,7 @@ import playsound as psound
 import edge_tts
 import configs
 import time, math, threading
-import smokesignal
+
 
 
 #from Main import print_string
@@ -47,7 +47,7 @@ def print_string(s):
 
 # Speak the audio out loud using edge_tts
 def speak_text(text):
-    communicate = edge_tts.Communicate(text, configs.chosen_voice)
+    communicate = edge_tts.Communicate(text, configs.chosen_voice, rate=configs.speech_rate, volume=configs.speech_volume)
 
     with open(output_file, "wb") as file:
         for chunk in communicate.stream_sync():

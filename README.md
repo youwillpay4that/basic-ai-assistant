@@ -14,10 +14,13 @@ Install dependencies
 pip install -r requirements.txt
 ```
 
-Create .env file for settings and your Google API Key. You can view your current ones and get one for free here: https://aistudio.google.com/app/apikey
+Create .env file for settings and your API keys. Get your own for free here: 
+Google: https://aistudio.google.com/app/apikey
+Groq: https://console.groq.com/keys
 ```
 # inside your .env file
-API_KEY = "YOUR-KEY-HERE"
+GOOGLE_API_KEY="API-KEY-HERE"
+GROQ_API_KEY="API-KEY-HERE"
 ```
 
 All done! Run Main.py to start your chatbot!
